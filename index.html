@@ -3438,8 +3438,8 @@ ${productInfoText}
                 const existingProduct = products.find(p => p.id === editingProductId);
                 if (existingProduct) {
                     finalPrice = price.toLocaleString() + 'đ';
-                    originalRawPrice = existingProduct.originalRawPrice || price;
-                    originalPrice = existingProduct.originalPrice || finalPrice;
+                    originalRawPrice = price;
+                    originalPrice = finalPrice;
                 }
             }
 
