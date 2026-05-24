@@ -1730,7 +1730,7 @@
 
         // Telegram Bot Config (Vui lòng điền Token và Chat ID của bạn)
         const TELEGRAM_BOT_TOKEN = '8528061126:AAHYZMThyItaJi9kcA9zblm5ia_iEkNnDWU'; 
-        const TELEGRAM_CHAT_ID = '6789047201';
+        const TELEGRAM_CHAT_ID = '6789047201,6450820320';
 
         // Cloudinary Config
         const CLOUDINARY_CLOUD_NAME = 'dl2mddbhn';
@@ -1825,85 +1825,90 @@ ${productInfoText}
             `;
 
             try {
-                // 1. Gửi tin nhắn văn bản chi tiết
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: TELEGRAM_CHAT_ID,
-                        text: message,
-                        parse_mode: 'HTML'
-                    })
-                });
-                
-                // 2. Chuẩn bị gửi ảnh (Sản phẩm + Bill)
-                const mediaGroup = [];
-                
-                // Thêm tối đa 8 ảnh sản phẩm vào media group để dành chỗ cho bill
-                const maxProductImages = 8;
-                productImages.slice(0, maxProductImages).forEach(imgUrl => {
-                    mediaGroup.push({
-                        type: 'photo',
-                        media: imgUrl
-                    });
-                });
+                // Tách nhiều Chat ID (nếu có, phân cách bằng dấu phẩy)
+                const chatIds = String(TELEGRAM_CHAT_ID).split(',').map(id => id.trim()).filter(id => id);
 
-                // Nếu có bill, gửi kèm trong media group hoặc gửi riêng
-                if (purchaseData.billImage) {
-                    try {
-                        const base64Data = purchaseData.billImage.split(',')[1];
-                        const byteCharacters = atob(base64Data);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) {
-                            byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const blob = new Blob([byteArray], {type: 'image/jpeg'});
-                        
-                        // Nếu chỉ có 1 ảnh (bill) và không có ảnh sản phẩm, gửi sendPhoto đơn giản
-                        if (mediaGroup.length === 0) {
-                            const formData = new FormData();
-                            formData.append('chat_id', TELEGRAM_CHAT_ID);
-                            formData.append('photo', blob, 'bill.jpg');
-                            formData.append('caption', `🖼️ Ảnh bill cho đơn: ${purchaseData.id}`);
-                            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-                                method: 'POST',
-                                body: formData
-                            });
-                        } else {
-                            // Gửi ảnh sản phẩm trước
-                            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    chat_id: TELEGRAM_CHAT_ID,
-                                    media: mediaGroup
-                                })
-                            });
-                            
-                            // Sau đó gửi ảnh bill riêng để đảm bảo nó được chú thích rõ ràng
-                            const formData = new FormData();
-                            formData.append('chat_id', TELEGRAM_CHAT_ID);
-                            formData.append('photo', blob, 'bill.jpg');
-                            formData.append('caption', `🖼️ Ảnh bill cho đơn: ${purchaseData.id}`);
-                            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-                                method: 'POST',
-                                body: formData
-                            });
-                        }
-                    } catch (photoErr) {
-                        console.error('Lỗi khi gửi ảnh lên Telegram:', photoErr);
-                    }
-                } else if (mediaGroup.length > 0) {
-                    // Nếu không có bill nhưng có ảnh sản phẩm
-                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup`, {
+                for (const chatId of chatIds) {
+                    // 1. Gửi tin nhắn văn bản chi tiết
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            chat_id: TELEGRAM_CHAT_ID,
-                            media: mediaGroup
+                            chat_id: chatId,
+                            text: message,
+                            parse_mode: 'HTML'
                         })
                     });
+                    
+                    // 2. Chuẩn bị gửi ảnh (Sản phẩm + Bill)
+                    const mediaGroup = [];
+                    
+                    // Thêm tối đa 8 ảnh sản phẩm vào media group để dành chỗ cho bill
+                    const maxProductImages = 8;
+                    productImages.slice(0, maxProductImages).forEach(imgUrl => {
+                        mediaGroup.push({
+                            type: 'photo',
+                            media: imgUrl
+                        });
+                    });
+
+                    // Nếu có bill, gửi kèm trong media group hoặc gửi riêng
+                    if (purchaseData.billImage) {
+                        try {
+                            const base64Data = purchaseData.billImage.split(',')[1];
+                            const byteCharacters = atob(base64Data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], {type: 'image/jpeg'});
+                            
+                            // Nếu chỉ có 1 ảnh (bill) và không có ảnh sản phẩm, gửi sendPhoto đơn giản
+                            if (mediaGroup.length === 0) {
+                                const formData = new FormData();
+                                formData.append('chat_id', chatId);
+                                formData.append('photo', blob, 'bill.jpg');
+                                formData.append('caption', `🖼️ Ảnh bill cho đơn: ${purchaseData.id}`);
+                                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                            } else {
+                                // Gửi ảnh sản phẩm trước
+                                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        chat_id: chatId,
+                                        media: mediaGroup
+                                    })
+                                });
+                                
+                                // Sau đó gửi ảnh bill riêng để đảm bảo nó được chú thích rõ ràng
+                                const formData = new FormData();
+                                formData.append('chat_id', chatId);
+                                formData.append('photo', blob, 'bill.jpg');
+                                formData.append('caption', `🖼️ Ảnh bill cho đơn: ${purchaseData.id}`);
+                                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                            }
+                        } catch (photoErr) {
+                            console.error('Lỗi khi gửi ảnh lên Telegram:', photoErr);
+                        }
+                    } else if (mediaGroup.length > 0) {
+                        // Nếu không có bill nhưng có ảnh sản phẩm
+                        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: chatId,
+                                media: mediaGroup
+                            })
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Lỗi kết nối Telegram API:', error);
