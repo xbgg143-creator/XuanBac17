@@ -2421,7 +2421,6 @@ ${productInfoText}
                     timer: 1500, 
                     showConfirmButton: false 
                 }).then(() => {
-                    showAnnouncement();
                     // Hỏi chọn thiết bị sau khi đăng nhập thành công
                     setTimeout(showDeviceSelectionModal, 500);
                 });
@@ -2524,6 +2523,11 @@ ${productInfoText}
                         syncData();
                         renderCategoryButtons();
                         renderSlider();
+                        
+                        // Hiện thông báo nếu đã chọn thiết bị rồi
+                        if (savedDevice) {
+                            setTimeout(showAnnouncement, 500);
+                        }
                     } else {
                         localStorage.removeItem('currentUsername');
                         syncData();
@@ -5984,6 +5988,8 @@ ${productInfoText}
                 } else if (result.dismiss === Swal.DismissReason.cancel) {
                     setDeviceType('mobile');
                 }
+                // Sau khi chọn thiết bị xong, hiện thông báo
+                setTimeout(showAnnouncement, 500);
             });
         }
 
@@ -6190,6 +6196,10 @@ ${productInfoText}
                 renderCategoryButtons();
                 updateStatsUI();
                 renderSlider();
+                // Hiện thông báo nếu đã đăng nhập
+                if (currentUser) {
+                    setTimeout(showAnnouncement, 500);
+                }
             }, 200);
         };
     </script>
