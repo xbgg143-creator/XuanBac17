@@ -1256,7 +1256,7 @@
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="bg-[#0f0f1e] border border-[#1e1e3a] rounded-3xl overflow-hidden shadow-2xl">
                 <div class="p-6 border-b border-[#1e1e3a] flex justify-between items-center">
-                    <h3 class="text-xl font-black text-[#00d4ff]">THÊM SẢN PHẨM MỚI</h3>
+                    <h3 id="add-product-modal-title" class="text-xl font-black text-[#00d4ff]">THÊM SẢN PHẨM MỚI</h3>
                     <button onclick="closeAddProductModal()" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="p-6 space-y-4">
@@ -1305,7 +1305,7 @@
                     </div>
                 </div>
                 <div class="p-6 bg-[#0a0a14] flex gap-3">
-                    <button onclick="saveNewProduct()" class="w-full py-3 rounded-xl font-bold btn-primary uppercase tracking-wider">Lưu sản phẩm</button>
+                    <button onclick="saveNewProduct()" class="w-full py-3 rounded-xl font-bold btn-primary uppercase tracking-wider" id="save-product-btn">Lưu sản phẩm</button>
                 </div>
             </div>
         </div>
@@ -1993,6 +1993,7 @@ ${productInfoText}
         let cartItemsToBuy = [];
         let statsOffsets = { transactions: 0, revenue: 0 };
         const DEPOSIT_AMOUNT = 50000; // 50k
+        let editingProductId = null;
  
          // Initial cart count update
          setTimeout(() => {
@@ -2721,7 +2722,10 @@ ${productInfoText}
                 return `
                 <div class="product-card rounded-2xl overflow-hidden flex flex-col group relative ${(p.qty || 0) <= 0 ? 'opacity-60 grayscale' : ''}">
                     ${discountBadge}
-                    ${isAdmin ? `<button onclick="deleteProduct('${p.id}')" class="absolute top-2 ${hasOriginalPrice ? 'left-24' : 'left-2'} z-10 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:scale-110 shadow-lg"><i class="fas fa-trash text-[10px]"></i></button>` : ''}
+                    ${isAdmin ? `
+                        <button onclick="openEditProductModal('${p.id}')" class="absolute top-2 right-2 z-10 bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:scale-110 shadow-lg"><i class="fas fa-edit text-[10px]"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="absolute top-2 ${hasOriginalPrice ? 'left-24' : 'left-2'} z-10 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:scale-110 shadow-lg"><i class="fas fa-trash text-[10px]"></i></button>
+                    ` : ''}
                     <div class="relative h-40 overflow-hidden">
                         <img src="${p.img || ''}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         <div class="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded-lg text-[10px] font-bold">MS: #${p.id}</div>
@@ -3104,7 +3108,10 @@ ${productInfoText}
         let productFiles = []; // Lưu trữ File object để upload lên Cloudinary
         
         function openAddProductModal() { 
+            editingProductId = null;
             document.getElementById('add-product-modal').classList.remove('hidden');
+            document.getElementById('add-product-modal-title').innerText = 'THÊM SẢN PHẨM MỚI';
+            document.getElementById('save-product-btn').innerText = 'Lưu sản phẩm';
             productImagesData = [];
             productFiles = [];
             const previewContainer = document.getElementById('new-p-images-preview');
@@ -3124,9 +3131,61 @@ ${productInfoText}
             if (selectEl) {
                 selectEl.innerHTML = displayCategories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
             }
+            
+            // Clear all inputs
+            document.getElementById('new-p-name').value = '';
+            document.getElementById('new-p-price').value = '';
+            document.getElementById('new-p-qty').value = '1';
+            document.getElementById('new-p-colors').value = '';
+            document.getElementById('new-p-sizes').value = '';
+            document.getElementById('new-p-note').value = '';
+        }
+
+        function openEditProductModal(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            
+            editingProductId = productId;
+            document.getElementById('add-product-modal').classList.remove('hidden');
+            document.getElementById('add-product-modal-title').innerText = 'CHỈNH SỬA SẢN PHẨM';
+            document.getElementById('save-product-btn').innerText = 'Cập nhật sản phẩm';
+            
+            const defaultCategories = [
+                { id: '1', name: 'Áo Thun', icon: 'tshirt' },
+                { id: '2', name: 'Quần Jeans', icon: 'socks' },
+                { id: '3', name: 'Áo Khoác', icon: 'jacket' },
+                { id: '4', name: 'Phụ Kiện', icon: 'gem' }
+            ];
+            
+            const displayCategories = categories && categories.length > 0 ? categories : defaultCategories;
+            
+            // Populate category dropdown
+            const selectEl = document.getElementById('new-p-cat');
+            if (selectEl) {
+                selectEl.innerHTML = displayCategories.map(cat => `<option value="${cat.name}" ${cat.name === product.category ? 'selected' : ''}>${cat.name}</option>`).join('');
+            }
+            
+            // Fill inputs with product data
+            document.getElementById('new-p-name').value = product.name || '';
+            document.getElementById('new-p-price').value = product.rawPrice || '';
+            document.getElementById('new-p-qty').value = product.qty || 1;
+            document.getElementById('new-p-colors').value = (product.colors || []).join(', ');
+            document.getElementById('new-p-sizes').value = (product.sizes || []).join(', ');
+            document.getElementById('new-p-note').value = product.note || '';
+            
+            // Load existing images
+            productImagesData = [];
+            productFiles = [];
+            if (product.images && product.images.length > 0) {
+                productImagesData = [...product.images];
+            } else if (product.img) {
+                productImagesData = [product.img];
+            }
+            renderProductImagesPreview();
         }
         
         function closeAddProductModal() { 
+            editingProductId = null;
             document.getElementById('add-product-modal').classList.add('hidden');
             productImagesData = [];
             productFiles = [];
@@ -3361,25 +3420,32 @@ ${productInfoText}
             const colors = colorsText ? colorsText.split(',').map(c => c.trim()).filter(c => c) : [];
             const sizes = sizesText ? sizesText.split(',').map(s => s.trim()).filter(s => s) : [];
 
-            const newId = Date.now();
+            const productId = editingProductId || Date.now();
             
             let finalRawPrice = price;
             let finalPrice = price.toLocaleString() + 'đ';
             let originalRawPrice = price;
             let originalPrice = price.toLocaleString() + 'đ';
             
-            if (globalDiscount) {
+            if (globalDiscount && !editingProductId) {
                 if (globalDiscount.type === 'percent') {
                     finalRawPrice = Math.round(price * (1 - globalDiscount.value / 100));
                 } else if (globalDiscount.type === 'amount') {
                     finalRawPrice = Math.max(0, price - globalDiscount.value);
                 }
                 finalPrice = finalRawPrice.toLocaleString() + 'đ';
+            } else if (editingProductId) {
+                const existingProduct = products.find(p => p.id === editingProductId);
+                if (existingProduct) {
+                    finalPrice = price.toLocaleString() + 'đ';
+                    originalRawPrice = existingProduct.originalRawPrice || price;
+                    originalPrice = existingProduct.originalPrice || finalPrice;
+                }
             }
 
             // Upload ảnh lên Cloudinary
             Swal.fire({ 
-                title: 'Đang upload ảnh...', 
+                title: 'Đang xử lý...', 
                 background: '#0f0f1e', 
                 color: '#fff', 
                 didOpen: () => { Swal.showLoading(); },
@@ -3403,31 +3469,45 @@ ${productInfoText}
                 return;
             }
             
-            const newProduct = { 
-                id: newId, 
+            // Lấy ảnh cũ nếu không upload ảnh mới
+            let finalImages = [];
+            let finalImg = '';
+            if (uploadedImageUrls.length > 0) {
+                finalImages = uploadedImageUrls;
+                finalImg = uploadedImageUrls[0];
+            } else if (editingProductId) {
+                const existingProduct = products.find(p => p.id === editingProductId);
+                if (existingProduct) {
+                    finalImages = productImagesData.length > 0 ? productImagesData : (existingProduct.images || []);
+                    finalImg = finalImages.length > 0 ? finalImages[0] : (existingProduct.img || '');
+                }
+            }
+            
+            const productData = { 
+                id: productId, 
                 name, 
                 price: finalPrice, 
                 rawPrice: finalRawPrice, 
                 originalRawPrice: originalRawPrice,
                 originalPrice: originalPrice,
                 category: cat,
-                images: uploadedImageUrls.length > 0 ? uploadedImageUrls : [],
-                img: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : '',
+                images: finalImages,
+                img: finalImg,
                 qty: qty,
                 colors,
                 sizes,
                 note,
-                createdAt: newId // Sử dụng newId làm thời gian tạo (Date.now())
+                createdAt: editingProductId ? (products.find(p => p.id === editingProductId)?.createdAt || productId) : productId
             };
 
-            db.ref('products/' + newId).set(newProduct).then(() => {
+            db.ref('products/' + productId).set(productData).then(() => {
                 closeAddProductModal();
-                Swal.fire({ icon: 'success', title: 'Đã thêm!', background: '#0f0f1e', color: '#fff' });
-                // Reset fields
-                nameEl.value = '';
-                priceEl.value = '';
-                qtyEl.value = 1;
-                noteEl.value = '';
+                Swal.fire({ 
+                    icon: 'success', 
+                    title: editingProductId ? 'Đã cập nhật!' : 'Đã thêm!', 
+                    background: '#0f0f1e', 
+                    color: '#fff' 
+                });
             }).catch(e => {
                 Swal.fire({ icon: 'error', title: 'Lỗi', text: e.message, background: '#0f0f1e', color: '#fff' });
             });
