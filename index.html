@@ -1749,6 +1749,7 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Cloudinary response:', data);
                     if (data.secure_url) {
                         resolve(data.secure_url);
                     } else {
