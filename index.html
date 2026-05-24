@@ -3495,7 +3495,7 @@ ${productInfoText}
                 // Calculate Stats
                 const completedOrders = purchaseList.filter(p => p.status === 'Hoàn thành');
                 const totalTransactions = Math.max(0, completedOrders.length - (statsOffsets.transactions || 0));
-                const totalRevenue = Math.max(0, completedOrders.reduce((sum, p) => sum + (p.transferAmount || p.rawPrice || 0), 0) - (statsOffsets.revenue || 0));
+                const totalRevenue = Math.max(0, completedOrders.reduce((sum, p) => sum + (p.rawPrice || p.transferAmount || 0), 0) - (statsOffsets.revenue || 0));
                 
                 const statTransactions = document.getElementById('admin-stat-transactions');
                 const statRevenue = document.getElementById('admin-stat-revenue');
@@ -3613,7 +3613,7 @@ ${productInfoText}
                         if (type === 'transactions') {
                             statsOffsets.transactions = completedOrders.length;
                         } else {
-                            statsOffsets.revenue = completedOrders.reduce((sum, p) => sum + (p.transferAmount || p.rawPrice || 0), 0);
+                            statsOffsets.revenue = completedOrders.reduce((sum, p) => sum + (p.rawPrice || p.transferAmount || 0), 0);
                         }
                         
                         db.ref('statsOffsets').set(statsOffsets).then(() => {
